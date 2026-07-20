@@ -1,7 +1,7 @@
-<template>
+﻿<template>
   <div>
     <div class="page-header">
-      <h1 class="page-title"><span>⚙️</span> 管理后台</h1>
+      <h1 class="page-title"><span>鈿欙笍</span> 绠＄悊鍚庡彴</h1>
     </div>
 
     <div class="admin-layout">
@@ -18,46 +18,46 @@
       </div>
 
       <div class="admin-content">
-        <!-- 概览 -->
+        <!-- 姒傝 -->
         <div v-if="currentTab === 'overview'">
-          <h3 style="margin-bottom: 16px;">📊 站点概览</h3>
+          <h3 style="margin-bottom: 16px;">馃搳 绔欑偣姒傝</h3>
           <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px;">
             <div class="card" style="text-align: center; padding: 20px;">
-              <div style="font-size: 32px; margin-bottom: 8px;">👍</div>
+              <div style="font-size: 32px; margin-bottom: 8px;">馃憤</div>
               <div style="font-size: 28px; font-weight: 700; color: var(--success);">{{ appStore.jobs.good.length }}</div>
-              <div style="font-size: 14px; color: var(--text-secondary);">好工作推荐</div>
+              <div style="font-size: 14px; color: var(--text-secondary);">濂藉伐浣滄帹鑽?/div>
             </div>
             <div class="card" style="text-align: center; padding: 20px;">
-              <div style="font-size: 32px; margin-bottom: 8px;">👌</div>
+              <div style="font-size: 32px; margin-bottom: 8px;">馃憣</div>
               <div style="font-size: 28px; font-weight: 700; color: var(--warning);">{{ appStore.jobs.medium.length }}</div>
-              <div style="font-size: 14px; color: var(--text-secondary);">中等工作</div>
+              <div style="font-size: 14px; color: var(--text-secondary);">涓瓑宸ヤ綔</div>
             </div>
             <div class="card" style="text-align: center; padding: 20px;">
-              <div style="font-size: 32px; margin-bottom: 8px;">⚠️</div>
+              <div style="font-size: 32px; margin-bottom: 8px;">鈿狅笍</div>
               <div style="font-size: 28px; font-weight: 700; color: var(--danger);">{{ appStore.jobs.bad.length }}</div>
-              <div style="font-size: 14px; color: var(--text-secondary);">避雷信息</div>
+              <div style="font-size: 14px; color: var(--text-secondary);">閬块浄淇℃伅</div>
             </div>
             <div class="card" style="text-align: center; padding: 20px;">
-              <div style="font-size: 32px; margin-bottom: 8px;">💬</div>
+              <div style="font-size: 32px; margin-bottom: 8px;">馃挰</div>
               <div style="font-size: 28px; font-weight: 700;">{{ appStore.comments.length }}</div>
-              <div style="font-size: 14px; color: var(--text-secondary);">评论总数</div>
+              <div style="font-size: 14px; color: var(--text-secondary);">璇勮鎬绘暟</div>
             </div>
             <div class="card" style="text-align: center; padding: 20px;">
-              <div style="font-size: 32px; margin-bottom: 8px;">👥</div>
+              <div style="font-size: 32px; margin-bottom: 8px;">馃懃</div>
               <div style="font-size: 28px; font-weight: 700;">{{ users.length }}</div>
-              <div style="font-size: 14px; color: var(--text-secondary);">注册用户</div>
+              <div style="font-size: 14px; color: var(--text-secondary);">娉ㄥ唽鐢ㄦ埛</div>
             </div>
           </div>
         </div>
 
-        <!-- 内容管理 -->
+        <!-- 鍐呭绠＄悊 -->
         <div v-if="currentTab === 'content'">
-          <h3 style="margin-bottom: 16px;">📋 内容管理</h3>
+          <h3 style="margin-bottom: 16px;">馃搵 鍐呭绠＄悊</h3>
           <div style="display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap;">
-            <button class="btn btn-sm" :class="contentFilter === 'all' ? 'btn-primary' : 'btn-outline'" @click="contentFilter = 'all'">全部</button>
-            <button class="btn btn-sm" :class="contentFilter === 'good' ? 'btn-success' : 'btn-outline'" @click="contentFilter = 'good'">好工作</button>
-            <button class="btn btn-sm" :class="contentFilter === 'medium' ? 'btn-warning' : 'btn-outline'" @click="contentFilter = 'medium'">中等</button>
-            <button class="btn btn-sm" :class="contentFilter === 'bad' ? 'btn-danger' : 'btn-outline'" @click="contentFilter = 'bad'">避雷</button>
+            <button class="btn btn-sm" :class="contentFilter === 'all' ? 'btn-primary' : 'btn-outline'" @click="contentFilter = 'all'">鍏ㄩ儴</button>
+            <button class="btn btn-sm" :class="contentFilter === 'good' ? 'btn-success' : 'btn-outline'" @click="contentFilter = 'good'">濂藉伐浣?/button>
+            <button class="btn btn-sm" :class="contentFilter === 'medium' ? 'btn-warning' : 'btn-outline'" @click="contentFilter = 'medium'">涓瓑</button>
+            <button class="btn btn-sm" :class="contentFilter === 'bad' ? 'btn-danger' : 'btn-outline'" @click="contentFilter = 'bad'">閬块浄</button>
           </div>
 
           <div v-for="item in filteredContent" :key="item.id + item.type" class="job-card" :class="'job-card-' + item.type" style="margin-bottom: 12px;">
@@ -67,52 +67,52 @@
                 <span style="font-size: 12px; color: var(--text-secondary); margin-left: 8px;">@ {{ item.company }}</span>
                 <span class="badge" :class="'badge-' + item.type" style="margin-left: 8px;">{{ typeLabels[item.type] }}</span>
               </div>
-              <button class="btn btn-danger btn-sm" @click="deleteContent(item)">删除</button>
+              <button class="btn btn-danger btn-sm" @click="deleteContent(item)">鍒犻櫎</button>
             </div>
             <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">
-              作者: {{ item.author }} | {{ formatTime(item.createdAt) }}
+              浣滆€? {{ item.author }} | {{ formatTime(item.createdAt) }}
             </div>
           </div>
           <div v-if="filteredContent.length === 0" class="empty-state" style="padding: 30px;">
-            <div class="empty-state-icon">📭</div>
-            <div class="empty-state-text">暂无内容</div>
+            <div class="empty-state-icon">馃摥</div>
+            <div class="empty-state-text">鏆傛棤鍐呭</div>
           </div>
         </div>
 
-        <!-- 评论管理 -->
+        <!-- 璇勮绠＄悊 -->
         <div v-if="currentTab === 'comments'">
-          <h3 style="margin-bottom: 16px;">💬 评论管理</h3>
+          <h3 style="margin-bottom: 16px;">馃挰 璇勮绠＄悊</h3>
           <div v-for="comment in appStore.comments" :key="comment.id" class="comment-item">
             <div class="comment-header">
               <div class="comment-author">
-                <span>👤</span> {{ comment.author }}
-                <span class="badge badge-admin" style="font-size: 10px;" v-if="comment.isAdmin">管理员</span>
+                <span>馃懁</span> {{ comment.author }}
+                <span class="badge badge-admin" style="font-size: 10px;" v-if="comment.isAdmin">绠＄悊鍛?/span>
               </div>
               <div style="display: flex; gap: 8px; align-items: center;">
                 <span class="comment-time">{{ formatTime(comment.createdAt) }}</span>
-                <button class="btn btn-danger btn-sm" @click="deleteComment(comment.id)">删除</button>
+                <button class="btn btn-danger btn-sm" @click="deleteComment(comment.id)">鍒犻櫎</button>
               </div>
             </div>
             <div class="comment-content">{{ comment.content }}</div>
           </div>
           <div v-if="appStore.comments.length === 0" class="empty-state" style="padding: 30px;">
-            <div class="empty-state-icon">📭</div>
-            <div class="empty-state-text">暂无评论</div>
+            <div class="empty-state-icon">馃摥</div>
+            <div class="empty-state-text">鏆傛棤璇勮</div>
           </div>
         </div>
 
-        <!-- 用户管理 -->
+        <!-- 鐢ㄦ埛绠＄悊 -->
         <div v-if="currentTab === 'users'">
-          <h3 style="margin-bottom: 16px;">👥 用户管理</h3>
+          <h3 style="margin-bottom: 16px;">馃懃 鐢ㄦ埛绠＄悊</h3>
           <div style="overflow-x: auto;">
             <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
               <thead>
                 <tr style="background: #f9fafb; text-align: left;">
-                  <th style="padding: 10px 12px; border-bottom: 2px solid var(--border);">用户名</th>
-                  <th style="padding: 10px 12px; border-bottom: 2px solid var(--border);">昵称</th>
-                  <th style="padding: 10px 12px; border-bottom: 2px solid var(--border);">角色</th>
-                  <th style="padding: 10px 12px; border-bottom: 2px solid var(--border);">注册时间</th>
-                  <th style="padding: 10px 12px; border-bottom: 2px solid var(--border);">操作</th>
+                  <th style="padding: 10px 12px; border-bottom: 2px solid var(--border);">鐢ㄦ埛鍚?/th>
+                  <th style="padding: 10px 12px; border-bottom: 2px solid var(--border);">鏄电О</th>
+                  <th style="padding: 10px 12px; border-bottom: 2px solid var(--border);">瑙掕壊</th>
+                  <th style="padding: 10px 12px; border-bottom: 2px solid var(--border);">娉ㄥ唽鏃堕棿</th>
+                  <th style="padding: 10px 12px; border-bottom: 2px solid var(--border);">鎿嶄綔</th>
                 </tr>
               </thead>
               <tbody>
@@ -121,7 +121,7 @@
                   <td style="padding: 10px 12px;">{{ u.nickname || '-' }}</td>
                   <td style="padding: 10px 12px;">
                     <span class="badge" :class="u.role === 'admin' ? 'badge-admin' : 'badge-user'">
-                      {{ u.role === 'admin' ? '管理员' : '用户' }}
+                      {{ u.role === 'admin' ? '绠＄悊鍛? : '鐢ㄦ埛' }}
                     </span>
                   </td>
                   <td style="padding: 10px 12px; color: var(--text-secondary); font-size: 12px;">
@@ -133,7 +133,7 @@
                       class="btn btn-danger btn-sm"
                       @click="deleteUser(u.username)"
                     >
-                      删除
+                      鍒犻櫎
                     </button>
                     <span v-else style="font-size: 12px; color: var(--text-secondary);">-</span>
                   </td>
@@ -143,66 +143,66 @@
           </div>
         </div>
 
-        <!-- COS配置 -->
+        <!-- COS閰嶇疆 -->
         <div v-if="currentTab === 'cos'">
-          <h3 style="margin-bottom: 16px;">☁️ 腾讯云COS配置</h3>
+          <h3 style="margin-bottom: 16px;">鈽侊笍 鑵捐浜慍OS閰嶇疆</h3>
           <div style="background: #fefce8; border: 1px solid #fde68a; border-radius: 8px; padding: 12px; margin-bottom: 16px; font-size: 13px; color: #92400e;">
-            ⚠️ 请先在腾讯云控制台获取 SecretId 和 SecretKey，并创建一个存储桶。
+            鈿狅笍 璇峰厛鍦ㄨ吘璁簯鎺у埗鍙拌幏鍙?SecretId 鍜?SecretKey锛屽苟鍒涘缓涓€涓瓨鍌ㄦ《銆?
           </div>
           <form @submit.prevent="saveCOSConfig">
             <div class="form-group">
               <label class="form-label">SecretId</label>
-              <input v-model="cosConfig.SecretId" class="form-input" placeholder="请输入SecretId" />
+              <input v-model="cosConfig.SecretId" class="form-input" placeholder="璇疯緭鍏ecretId" />
             </div>
             <div class="form-group">
               <label class="form-label">SecretKey</label>
-              <input v-model="cosConfig.SecretKey" class="form-input" type="password" placeholder="请输入SecretKey" />
+              <input v-model="cosConfig.SecretKey" class="form-input" type="password" placeholder="璇疯緭鍏ecretKey" />
             </div>
             <div class="form-group">
-              <label class="form-label">存储桶名称 (Bucket)</label>
-              <input v-model="cosConfig.Bucket" class="form-input" placeholder="例如：your-bucket-1250000000" />
+              <label class="form-label">瀛樺偍妗跺悕绉?(Bucket)</label>
+              <input v-model="cosConfig.Bucket" class="form-input" placeholder="渚嬪锛歽our-bucket-1250000000" />
             </div>
             <div class="form-group">
-              <label class="form-label">所属地域 (Region)</label>
+              <label class="form-label">鎵€灞炲湴鍩?(Region)</label>
               <select v-model="cosConfig.Region" class="form-select">
-                <option value="ap-guangzhou">广州 (ap-guangzhou)</option>
-                <option value="ap-shanghai">上海 (ap-shanghai)</option>
-                <option value="ap-beijing">北京 (ap-beijing)</option>
-                <option value="ap-shenzhen-fsi">深圳金融 (ap-shenzhen-fsi)</option>
-                <option value="ap-hongkong">香港 (ap-hongkong)</option>
-                <option value="ap-singapore">新加坡 (ap-singapore)</option>
+                <option value="ap-guangzhou">骞垮窞 (ap-guangzhou)</option>
+                <option value="ap-shanghai">涓婃捣 (ap-shanghai)</option>
+                <option value="ap-beijing">鍖椾含 (ap-beijing)</option>
+                <option value="ap-shenzhen-fsi">娣卞湷閲戣瀺 (ap-shenzhen-fsi)</option>
+                <option value="ap-hongkong">棣欐腐 (ap-hongkong)</option>
+                <option value="ap-singapore">鏂板姞鍧?(ap-singapore)</option>
               </select>
             </div>
-            <button type="submit" class="btn btn-primary">保存并初始化COS</button>
+            <button type="submit" class="btn btn-primary">淇濆瓨骞跺垵濮嬪寲COS</button>
           </form>
           <div v-if="cosStatus" style="margin-top: 12px; padding: 8px 12px; border-radius: 8px; font-size: 14px; background: var(--success); color: white;">
             {{ cosStatus }}
           </div>
         </div>
 
-        <!-- 站点设置 -->
+        <!-- 绔欑偣璁剧疆 -->
         <div v-if="currentTab === 'settings'">
-          <h3 style="margin-bottom: 16px;">🎨 站点设置</h3>
+          <h3 style="margin-bottom: 16px;">馃帹 绔欑偣璁剧疆</h3>
           <form @submit.prevent="saveSettings">
             <div class="form-group">
-              <label class="form-label">网站背景图片URL</label>
-              <input v-model="appStore.siteConfig.backgroundImage" class="form-input" placeholder="输入背景图片URL，留空使用默认背景" />
+              <label class="form-label">缃戠珯鑳屾櫙鍥剧墖URL</label>
+              <input v-model="appStore.siteConfig.backgroundImage" class="form-input" placeholder="杈撳叆鑳屾櫙鍥剧墖URL锛岀暀绌轰娇鐢ㄩ粯璁よ儗鏅? />
             </div>
             <div style="margin-bottom: 16px;">
-              <label class="form-label">背景预览</label>
+              <label class="form-label">鑳屾櫙棰勮</label>
               <div style="border: 2px dashed var(--border); border-radius: 8px; height: 120px; display: flex; align-items: center; justify-content: center; overflow: hidden; background: #f9fafb;">
                 <img v-if="appStore.siteConfig.backgroundImage" :src="appStore.siteConfig.backgroundImage" style="max-width: 100%; max-height: 100%; object-fit: cover;" />
-                <span v-else style="color: var(--text-secondary); font-size: 14px;">暂无背景图</span>
+                <span v-else style="color: var(--text-secondary); font-size: 14px;">鏆傛棤鑳屾櫙鍥?/span>
               </div>
             </div>
             <div class="form-group">
-              <label class="form-label">主题色</label>
+              <label class="form-label">涓婚鑹?/label>
               <div style="display: flex; gap: 8px; align-items: center;">
                 <input v-model="appStore.siteConfig.primaryColor" class="form-input" style="width: 120px;" placeholder="#4f46e5" />
                 <input type="color" v-model="appStore.siteConfig.primaryColor" style="width: 40px; height: 40px; border: none; cursor: pointer; border-radius: 4px;" />
               </div>
             </div>
-            <button type="submit" class="btn btn-primary">保存设置</button>
+            <button type="submit" class="btn btn-primary">淇濆瓨璁剧疆</button>
           </form>
           <div v-if="settingsStatus" style="margin-top: 12px; padding: 8px 12px; border-radius: 8px; font-size: 14px; background: var(--success); color: white;">
             {{ settingsStatus }}
@@ -233,15 +233,15 @@ const cosConfig = ref({
   Region: savedConfig?.Region || getCOSConfig().Region,
 });
 
-const typeLabels = { good: '推荐', medium: '一般', bad: '避雷' };
+const typeLabels = { good: '鎺ㄨ崘', medium: '涓€鑸?, bad: '閬块浄' };
 
 const menuItems = [
-  { key: 'overview', icon: '📊', label: '概览' },
-  { key: 'content', icon: '📋', label: '内容管理' },
-  { key: 'comments', icon: '💬', label: '评论管理' },
-  { key: 'users', icon: '👥', label: '用户管理' },
-  { key: 'cos', icon: '☁️', label: 'COS配置' },
-  { key: 'settings', icon: '🎨', label: '站点设置' },
+  { key: 'overview', icon: '馃搳', label: '姒傝' },
+  { key: 'content', icon: '馃搵', label: '鍐呭绠＄悊' },
+  { key: 'comments', icon: '馃挰', label: '璇勮绠＄悊' },
+  { key: 'users', icon: '馃懃', label: '鐢ㄦ埛绠＄悊' },
+  { key: 'cos', icon: '鈽侊笍', label: 'COS閰嶇疆' },
+  { key: 'settings', icon: '馃帹', label: '绔欑偣璁剧疆' },
 ];
 
 const filteredContent = computed(() => {
@@ -249,7 +249,7 @@ const filteredContent = computed(() => {
   for (const type of ['good', 'medium', 'bad']) {
     if (contentFilter.value === 'all' || contentFilter.value === type) {
       for (const job of appStore.jobs[type]) {
-        all$.push({ ...job, type });
+        all.push({ ...job, type });
       }
     }
   }
@@ -261,19 +261,19 @@ onMounted(async () => {
 });
 
 async function deleteContent(item) {
-  if ($`确定删除「${item.title}」吗？`) {
+  if ($`纭畾鍒犻櫎銆?{item.title}銆嶅悧锛焋) {
     await appStore.deleteJob(item.type, item.id);
   }
 }
 
 async function deleteComment(id) {
-  if (confirm('确定删除此评论吗？')) {
+  if (confirm('纭畾鍒犻櫎姝よ瘎璁哄悧锛?)) {
     await appStore.deleteComment(id);
   }
 }
 
 async function deleteUser(username) {
-  if ($`确定删除用户「${username}」吗？`) {
+  if ($`纭畾鍒犻櫎鐢ㄦ埛銆?{username}銆嶅悧锛焋) {
     await deleteUserApi(username);
     users.value = await getAllUsers();
   }
@@ -282,14 +282,14 @@ async function deleteUser(username) {
 async function saveCOSConfig() {
   try {
     await initCOS(cosConfig.value);
-    cosStatus.value = 'COS配置已保存，连接成功！';
+    cosStatus.value = 'COS閰嶇疆宸蹭繚瀛橈紝杩炴帴鎴愬姛锛?;
   } catch (e) {
-    cosStatus.value = '配置已保存，但连接测试失败：' + e.message + '（可稍后重试）';
+    cosStatus.value = '閰嶇疆宸蹭繚瀛橈紝浣嗚繛鎺ユ祴璇曞け璐ワ細' + e.message + '锛堝彲绋嶅悗閲嶈瘯锛?;
   }
 }
 
 async function saveSettings() {
   await appStore.saveSiteConfig();
-  settingsStatus.value = '设置已保存！';
+  settingsStatus.value = '璁剧疆宸蹭繚瀛橈紒';
 }
 </script>

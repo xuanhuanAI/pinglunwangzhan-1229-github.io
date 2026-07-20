@@ -1,33 +1,33 @@
-<template>
+﻿<template>
   <div class="auth-page">
     <div class="auth-card">
-      <h2 class="auth-title">📝 注册</h2>
+      <h2 class="auth-title">馃摑 娉ㄥ唽</h2>
       <form @submit.prevent="handleRegister">
         <div class="form-group">
-          <label class="form-label">用户名</label>
-          <input v-model="username" class="form-input" placeholder="请设置用户名" required />
+          <label class="form-label">鐢ㄦ埛鍚?/label>
+          <input v-model="username" class="form-input" placeholder="璇疯缃敤鎴峰悕" required />
         </div>
         <div class="form-group">
-          <label class="form-label">昵称</label>
-          <input v-model="nickname" class="form-input" placeholder="请设置昵称（可选）" />
+          <label class="form-label">鏄电О</label>
+          <input v-model="nickname" class="form-input" placeholder="璇疯缃樀绉帮紙鍙€夛級" />
         </div>
         <div class="form-group">
-          <label class="form-label">密码</label>
-          <input v-model="password" class="form-input" type="password" placeholder="请设置密码" required minlength="4" />
+          <label class="form-label">瀵嗙爜</label>
+          <input v-model="password" class="form-input" type="password" placeholder="璇疯缃瘑鐮? required minlength="4" />
         </div>
         <div class="form-group">
-          <label class="form-label">确认密码</label>
-          <input v-model="confirmPassword" class="form-input" type="password" placeholder="请再次输入密码" required />
+          <label class="form-label">纭瀵嗙爜</label>
+          <input v-model="confirmPassword" class="form-input" type="password" placeholder="璇峰啀娆¤緭鍏ュ瘑鐮? required />
         </div>
         <button type="submit" class="btn btn-primary" style="width: 100%;" :disabled="loading">
-          {{ loading ? '注册中...' : '注册' }}
+          {{ loading ? '娉ㄥ唽涓?..' : '娉ㄥ唽' }}
         </button>
       </form>
       <div v-if="error" style="color: var(--danger); font-size: 14px; margin-top: 12px; text-align: center;">
         {{ error }}
       </div>
       <div class="auth-footer">
-        已有账号？<router-link to="/login">立即登录</router-link>
+        宸叉湁璐﹀彿锛?router-link to="/login">绔嬪嵆鐧诲綍</router-link>
       </div>
     </div>
   </div>
@@ -51,18 +51,18 @@ const loading = ref(false);
 async function handleRegister() {
   error.value = '';
   if (password.value !== confirmPassword.value) {
-    error.value = '两次密码不一致';
+    error.value = '涓ゆ瀵嗙爜涓嶄竴鑷?;
     return;
   }
   if (password.value.length < 4) {
-    error.value = '密码至少4位';
+    error.value = '瀵嗙爜鑷冲皯4浣?;
     return;
   }
   loading.value = true;
   try {
     const user = await register(username.value, password.value, nickname.value);
     appStore.setUser(user);
-    router$.push('/');
+    router.push('/');
   } catch (e) {
     error.value = e.message;
   }
