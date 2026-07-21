@@ -45,18 +45,22 @@ export const useAppStore = defineStore("app", {
     },
     async fetchJobs(type) {
       try {
-        const data = await getCOSData(`data/${type}-jobs.json`);
+        const data = await this.getCOSDataSafe(`data/${type}-jobs.json`);
         this.jobs[type] = data || [];
       } catch (e) {
         this.jobs[type] = [];
       }
     },
-    async saveJobs(type) {
-      await putCOSData(`data/${type}-jobs.json`, this.jobs[type]);
+        async saveJobs(type) {
+      try {
+        await putCOSData(`data/${type}-jobs.json`, this.jobs[type]);
+      } catch (e) {
+        console.warn("COS未就绪，数据仅在本地保存", e);
+      }
     },
     async fetchComments() {
       try {
-        const data = await getCOSData("data/comments.json");
+        const data = await this.getCOSDataSafe("data/comments.json");
         this.comments = data || [];
       } catch (e) {
         this.comments = [];
@@ -65,6 +69,15 @@ export const useAppStore = defineStore("app", {
     async saveComments() {
       await putCOSData("data/comments.json", this.comments);
     },
+    async getCOSDataSafe(key) {
+      try {
+        return await getCOSData(key);
+      } catch (e) {
+        console.warn("COS读取失败:", key, e.message);
+        return null;
+      }
+    },
+
     async addJob(type, job) {
       this.jobs[type].unshift({
         ...job,
