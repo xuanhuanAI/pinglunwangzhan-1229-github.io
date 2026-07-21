@@ -256,10 +256,8 @@ export const useAppStore = defineStore("app", {
     },
 
     async addJob(type, job) {
-      const companyCheck = this.validateCompany(job.company);
-      if (!companyCheck.valid) throw new Error(companyCheck.message);
-      const titleCheck = this.validateJobTitle(job.title);
-      if (!titleCheck.valid) throw new Error(titleCheck.message);
+      if (!job.company || !job.company.trim()) throw new Error("请输入公司名称");
+      if (!job.title || !job.title.trim()) throw new Error("请输入岗位名称");
       this.jobs[type].unshift({
         ...job,
         id: Date.now().toString(),
@@ -353,4 +351,5 @@ export const useAppStore = defineStore("app", {
     },
   },
 });
+
 
