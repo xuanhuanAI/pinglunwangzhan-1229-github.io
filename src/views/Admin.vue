@@ -113,7 +113,7 @@
   </div>
 </template>
 <script setup>
-import { ref, computed } from "vue"
+import { ref, computed, onMounted, watch } from "vue"
 import { useAppStore } from "@/stores/app"
 import { getCOSConfig, initCOS, isCOSReady } from "@/utils/cos"
 
@@ -139,6 +139,31 @@ const titleBulkStatus = ref("")
 
 // AI配置
 const aiForm = ref({ apiKey: "", model: "deepseek-chat", baseUrl: "https://api.deepseek.com/v1", provider: "deepseek" })
+
+// 加载已保存的AI配置（localStorage兜底，再尝试从COS读取）
+async function loadAIConfig() {
+  // 1. 先从localStorage读取缓存
+  try {
+    const cached = localStorage.getItem("ai_config");
+    if (cached) {
+      const cfg = JSON.parse(cached);
+      Object.assign(aiForm.value, cfg);
+    }
+  } catch(e) {}
+  // 2. 如果有COS权限，从COS读取最新配置覆盖
+  try {
+    const { getCOSData } = await import("@/utils/cos");
+    const data = await getCOSData("config/ai-key.json");
+    if (data) {
+      aiForm.value.apiKey = data.apiKey || "";
+      aiForm.value.model = data.model || "deepseek-chat";
+      aiForm.value.baseUrl = data.baseUrl || "https://api.deepseek.com/v1";
+      aiForm.value.provider = data.provider || "deepseek";
+      // 同步到 localStorage 缓存
+      localStorage.setItem("ai_config", JSON.stringify(aiForm.value));
+    }
+  } catch(e) { /* 无COS权限，使用localStorage缓存 */ }
+}
 const aiSaving = ref(false)
 const aiStatus = ref("")
 const aiError = ref("")
@@ -154,6 +179,10 @@ function onProviderChange() { const p = AI_PROVIDERS[aiForm.value.provider]; if 
 
 const sortedCompanies = computed(() => [...appStore.companies].sort((a,b)=>a.name.localeCompare(b.name,"zh")))
 const sortedTitles = computed(() => [...appStore.jobTitles].sort((a,b)=>a.name.localeCompare(b.name,"zh")))
+
+// 页面加载和切换到AI标签时自动加载配置
+onMounted(() => { loadAIConfig(); });
+watch(currentTab, (tab) => { if (tab === "ai") loadAIConfig(); })
 
 const menuItems = [
   {key:"overview", icon:"📊", label:"概览"}, {key:"content", icon:"📋", label:"内容管理"},
@@ -181,19 +210,23 @@ async function addTitleBulk() { titleBulkStatus.value=""; try { const c=await ap
 async function removeTitle(n) { if (confirm("确定删除「"+n+"」？")) { await appStore.removeJobTitle(n) } }
 
 async function saveAIConfig() {
-  aiStatus.value=""; aiError.value=""; aiSaving.value=true
-  try {
-    const { getCOSConfig:g, getCOS:c } = await import("@/utils/cos")
-    const cos = c()
-    if (!cos) throw new Error("COS 未初始化")
-    const cfg = g()
-    await cos.putObject({
-      Bucket: cfg.Bucket, Region: cfg.Region,
-      Key: "config/ai-key.json",
-      Body: JSON.stringify({ apiKey: aiForm.value.apiKey, model: aiForm.value.model, baseUrl: aiForm.value.baseUrl }),
-      ContentType: "application/json",
-    })
-    aiStatus.value = "✅ AI校验配置已保存！"
+    aiStatus.value=""; aiError.value=""; aiSaving.value=true
+    try {
+      // 先保存到localStorage（保证刷新不丢失）
+      localStorage.setItem("ai_config", JSON.stringify(aiForm.value));
+      // 如果有COS权限，同步到COS
+      const { getCOSConfig:g, getCOS:c } = await import("@/utils/cos")
+      const cos = c()
+      if (cos) {
+        const cfg = g()
+        await cos.putObject({
+          Bucket: cfg.Bucket, Region: cfg.Region,
+          Key: "config/ai-key.json",
+          Body: JSON.stringify({ apiKey: aiForm.value.apiKey, model: aiForm.value.model, baseUrl: aiForm.value.baseUrl, provider: aiForm.value.provider }),
+          ContentType: "application/json",
+        })
+      }
+      aiStatus.value = "✅ AI校验配置已保存！"
   } catch(e) { aiError.value = "保存失败: "+e.message }
   aiSaving.value = false
 }
@@ -221,4 +254,6 @@ async function saveSettings() {
 
 function formatTime(t) { if (!t) return ""; return new Date(t).toLocaleString("zh-CN") }
 </script>
+
+
 

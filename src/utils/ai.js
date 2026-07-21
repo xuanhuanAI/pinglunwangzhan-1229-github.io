@@ -99,3 +99,4 @@ export async function validateWithAI(company, title) {
     return { valid: true, message: "" };
   }
 }
+
