@@ -76,7 +76,7 @@
             </div>
             <div class="form-group"><label class="form-label">API Key</label><input v-model="aiForm.apiKey" class="form-input" type="password" /></div>
             <div class="form-group"><label class="form-label">接口地址</label><input v-model="aiForm.baseUrl" class="form-input" /></div>
-            <div class="form-group"><label class="form-label">模型</label><input v-model="aiForm.model" class="form-input" />
+            <div class="form-group"><label class="form-label">模型</label><input v-model="aiForm.model" class="form-input" /></div>
             <button type="submit" class="btn btn-primary" :disabled="aiSaving">{{ aiSaving ? '保存中...' : '保存并启用AI校验' }}</button>
           </form>
           <div v-if="aiStatus" style="margin-top:12px;padding:8px 12px;border-radius:8px;font-size:14px;background:var(--success);color:white">{{ aiStatus }}</div>
@@ -221,3 +221,4 @@ async function saveSettings() {
 
 function formatTime(t) { if (!t) return ""; return new Date(t).toLocaleString("zh-CN") }
 </script>
+

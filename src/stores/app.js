@@ -80,8 +80,9 @@ export const useAppStore = defineStore("app", {
       try {
         const data = await this.getCOSDataSafe("data/comments.json");
         this.comments = data || [];
-        await this.flushPendingComments();
       } catch (e) { this.comments = []; }
+      // 合并本地待同步评论
+      await this.mergePendingComments();
     },
     async saveComments() { await putCOSData("data/comments.json", this.comments); },
 
@@ -117,36 +118,38 @@ export const useAppStore = defineStore("app", {
       this.companies.push({ name: name.trim(), addedBy: this.currentUser?.username || "unknown", addedAt: new Date().toISOString() });
       await this.saveCompanies();
     },
-    async removeCompany(name) {
-      this.companies = this.companies.filter((c) => c.name.trim().toLowerCase() !== name.trim().toLowerCase());
-      await this.saveCompanies();
-    },
     async addCompaniesBulk(text) {
-      const names = text.split(/[,，\n\r]+/).map((s) => s.trim()).filter(Boolean);
+      const names = text.split(/[\n,，、]+/).map((s) => s.trim()).filter(Boolean);
       if (names.length === 0) throw new Error("没有有效的公司名称");
       let added = 0;
+      const existing = new Set(this.companies.map((c) => c.name.trim().toLowerCase()));
       for (const name of names) {
-        if (!this.companies.find((c) => c.name.trim().toLowerCase() === name.toLowerCase())) {
+        if (!existing.has(name.toLowerCase())) {
           this.companies.push({ name, addedBy: this.currentUser?.username || "unknown", addedAt: new Date().toISOString() });
+          existing.add(name.toLowerCase());
           added++;
         }
       }
-      if (added === 0) throw new Error("这些公司都已存在");
+      if (added === 0) throw new Error("这些公司都已收录");
       await this.saveCompanies();
       return added;
     },
+    async removeCompany(name) {
+      this.companies = this.companies.filter((c) => c.name !== name);
+      await this.saveCompanies();
+    },
 
-    validateCompany(companyName) {
-      if (!companyName || !companyName.trim()) return { valid: false, message: "请输入公司名称" };
-      const match = this.companies.find((c) => c.name.trim().toLowerCase() === companyName.trim().toLowerCase());
+    validateCompany(name) {
+      if (!name || !name.trim()) return { valid: false, message: "请输入公司名称" };
+      const match = this.companies.find((c) => c.name.trim().toLowerCase() === name.trim().toLowerCase());
       if (match) return { valid: true, match: match.name };
-      const fuzzy = this.companies.filter((c) => c.name.includes(companyName.trim()) || companyName.includes(c.name));
+      const fuzzy = this.companies.filter((c) => c.name.includes(name.trim()) || name.includes(c.name));
       return {
         valid: false,
         suggestions: fuzzy.map((c) => c.name),
         message: fuzzy.length > 0
-          ? `「${companyName}」不在收录名单中。你要找的是不是：${fuzzy.map(c => c.name).join("、")}？`
-          : `「${companyName}」尚未被收录，无法发布。请联系管理员添加该公司。`,
+          ? `「${name}」不在收录名单中。你要找的是不是：${fuzzy.map(c => c.name).join("、")}？`
+          : `「${name}」尚未被收录，无法发布。请联系管理员添加该公司。`,
       };
     },
 
@@ -155,25 +158,9 @@ export const useAppStore = defineStore("app", {
     async fetchJobTitles() {
       try {
         const data = await this.getCOSDataSafe("data/job-titles.json");
-        // 将种子数据与已有数据合并
-        const existingNames = new Set((data || []).map((t) => t.name));
-        const merged = data || [];
-        for (const dt of DEFAULT_JOB_TITLES) {
-          if (!existingNames.has(dt)) {
-            merged.push({ name: dt, addedBy: "system", addedAt: new Date().toISOString() });
-            existingNames.add(dt);
-          }
-        }
-        this.jobTitles = merged;
-        if (this.jobTitles.length > (data || []).length) {
-          await this.saveJobTitles();
-        }
-      } catch (e) {
-        this.jobTitles = DEFAULT_JOB_TITLES.map((name) => ({ name, addedBy: "system", addedAt: new Date().toISOString() }));
-        if (isCOSReady()) await this.saveJobTitles();
-      }
+        this.jobTitles = data || DEFAULT_JOB_TITLES.map((t) => ({ name: t, addedBy: "system", addedAt: new Date().toISOString() }));
+      } catch (e) { this.jobTitles = DEFAULT_JOB_TITLES.map((t) => ({ name: t, addedBy: "system", addedAt: new Date().toISOString() })); }
     },
-
     async saveJobTitles() { await putCOSData("data/job-titles.json", this.jobTitles); },
 
     async extractJobTitlesFromJobs() {
@@ -198,12 +185,8 @@ export const useAppStore = defineStore("app", {
       this.jobTitles.push({ name: name.trim(), addedBy: this.currentUser?.username || "unknown", addedAt: new Date().toISOString() });
       await this.saveJobTitles();
     },
-    async removeJobTitle(name) {
-      this.jobTitles = this.jobTitles.filter((t) => t.name.trim().toLowerCase() !== name.trim().toLowerCase());
-      await this.saveJobTitles();
-    },
     async addJobTitlesBulk(text) {
-      const names = text.split(/[,，\n\r]+/).map((s) => s.trim()).filter(Boolean);
+      const names = text.split(/[\n,，、]+/).map((s) => s.trim()).filter(Boolean);
       if (names.length === 0) throw new Error("没有有效的职位名称");
       let added = 0;
       for (const name of names) {
@@ -215,6 +198,10 @@ export const useAppStore = defineStore("app", {
       if (added === 0) throw new Error("这些职位都已存在");
       await this.saveJobTitles();
       return added;
+    },
+    async removeJobTitle(name) {
+      this.jobTitles = this.jobTitles.filter((t) => t.name !== name);
+      await this.saveJobTitles();
     },
 
     validateJobTitle(title) {
@@ -231,7 +218,7 @@ export const useAppStore = defineStore("app", {
       };
     },
 
-    // ==================== 评论暂存 ====================
+    // ==================== 评论暂存（改进版） ====================
 
     getPendingComments() {
       try {
@@ -242,15 +229,24 @@ export const useAppStore = defineStore("app", {
     savePendingComments(comments) {
       localStorage.setItem(PENDING_COMMENTS_KEY, JSON.stringify(comments));
     },
-    async flushPendingComments() {
+
+    /**
+     * 从 localStorage 合并待同步评论到当前列表，并尝试写入 COS
+     */
+    async mergePendingComments() {
       const pending = this.getPendingComments();
       if (pending.length === 0) return;
-      if (!isWriteReady()) return;
       let changed = false;
       for (const pc of pending) {
-        if (!this.comments.find((c) => c.id === pc.id)) { this.comments.push(pc); changed = true; }
+        if (!this.comments.find((c) => c.id === pc.id)) {
+          this.comments.push(pc);
+          changed = true;
+        }
       }
-      if (changed) await this.saveComments();
+      if (changed && isWriteReady()) {
+        try { await this.saveComments(); } catch (e) { console.warn("合并待同步评论后保存失败:", e.message); }
+      }
+      // 清空待同步列表
       this.savePendingComments([]);
     },
 
@@ -279,19 +275,45 @@ export const useAppStore = defineStore("app", {
       await this.saveComments();
     },
 
+    /**
+     * 添加评论并保存：
+     * 1) 先添加到本地状态
+     * 2) 保存到 localStorage 待同步列表（防止丢失）
+     * 3) 如果有写权限，立即写入 COS
+     * 这样即使 COS 暂时不可写，评论也不会丢失
+     */
     async addComment(comment) {
       const newComment = { ...comment, id: Date.now().toString(), createdAt: new Date().toISOString() };
+      // 1. 加入本地状态
       this.comments.unshift(newComment);
-      if (isWriteReady()) await this.saveComments();
+      // 2. 保存到 localStorage 待同步列表
+      const pending = this.getPendingComments();
+      pending.push(newComment);
+      this.savePendingComments(pending);
+      // 3. 如果有写权限，立即写入 COS
+      if (isWriteReady()) {
+        try {
+          await this.saveComments();
+          // 写入成功后清除待同步（注意：只清除已同步的评论）
+          const remaining = this.getPendingComments().filter(
+            (p) => !this.comments.find((c) => c.id === p.id)
+          );
+          this.savePendingComments(remaining);
+        } catch (e) {
+          console.warn("评论写入COS失败（已本地暂存，管理员同步时会自动发布）:", e.message);
+        }
+      }
     },
     async deleteComment(commentId) {
       this.comments = this.comments.filter((c) => c.id !== commentId);
-      if (isWriteReady()) await this.saveComments();
+      if (isWriteReady()) {
+        try { await this.saveComments(); } catch (e) { console.warn("删除评论写入COS失败:", e.message); }
+      }
     },
 
     async syncAllToCOS() {
       if (!isCOSReady()) throw new Error("COS 未初始化");
-      await this.flushPendingComments();
+      await this.mergePendingComments();
       const results = [];
       for (const type of ["good", "medium", "bad"]) {
         await this.saveJobs(type);
@@ -300,7 +322,9 @@ export const useAppStore = defineStore("app", {
       await this.saveComments(); results.push(`评论: ${this.comments.length}条`);
       await this.saveCompanies(); results.push(`公司: ${this.companies.length}个`);
       await this.saveJobTitles(); results.push(`职位: ${this.jobTitles.length}个`);
-      await syncPendingUsers(); const pu = JSON.parse(localStorage.getItem("pending_users") || "[]"); if (pu.length > 0) results.push(`用户待同步: ${pu.length}个`); else results.push("用户: 已同步");
+      await syncPendingUsers();
+      const pu = JSON.parse(localStorage.getItem("pending_users") || "[]");
+      if (pu.length > 0) results.push(`用户待同步: ${pu.length}个`); else results.push("用户: 已同步");
       await this.saveSiteConfig(); results.push("站点配置");
       return results.join(" | ");
     },
@@ -329,4 +353,3 @@ export const useAppStore = defineStore("app", {
     },
   },
 });
-
