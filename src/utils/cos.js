@@ -14,7 +14,7 @@ export function loadSavedConfig() {
   return null;
 }
 
-async function loadPublicConfig() {
+async function loadPublicConfig(retries = 2) {
   if (publicConfigLoaded) return;
 
   try {
@@ -28,20 +28,31 @@ async function loadPublicConfig() {
     }
   } catch (e) {}
 
-  try {
-    const url = `https://${COS_CONFIG.Bucket}.cos.${COS_CONFIG.Region}.myqcloud.com/config/write-creds.json`;
-    const res = await fetch(url);
-    if (res.ok) {
-      const creds = await res.json();
-      if (creds.SecretId && creds.SecretKey) {
-        const COSSDK = await import("cos-js-sdk-v5");
-        writeInstance = new COSSDK.default({
-          SecretId: creds.SecretId,
-          SecretKey: creds.SecretKey,
-        });
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const url = `https://${COS_CONFIG.Bucket}.cos.${COS_CONFIG.Region}.myqcloud.com/config/write-creds.json`;
+      const res = await fetch(url);
+      if (res.ok) {
+        const creds = await res.json();
+        if (creds.SecretId && creds.SecretKey) {
+          const COSSDK = await import("cos-js-sdk-v5");
+          writeInstance = new COSSDK.default({
+            SecretId: creds.SecretId,
+            SecretKey: creds.SecretKey,
+          });
+        }
+        break;
+      } else if (res.status !== 404) {
+        console.warn("获取write-creds失败: HTTP", res.status);
       }
+    } catch (e) {
+      if (attempt < retries) {
+        await new Promise(r => setTimeout(r, 1000));
+        continue;
+      }
+      console.warn("获取COS公共写入凭据失败（不影响读取）:", e.message);
     }
-  } catch (e) {}
+  }
 
   publicConfigLoaded = true;
 }
@@ -64,6 +75,7 @@ export async function initCOS(config) {
   COS_CONFIG.Region = config.Region || COS_CONFIG.Region;
   localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
 
+  // 上传写入凭据供普通用户使用
   try {
     await cosInstance.putObject({
       Bucket: COS_CONFIG.Bucket, Region: COS_CONFIG.Region,
@@ -71,8 +83,22 @@ export async function initCOS(config) {
       Body: JSON.stringify({ SecretId: config.SecretId, SecretKey: config.SecretKey }),
       ContentType: "application/json",
     });
+    console.log("✅ 写入凭据已上传到COS");
   } catch (e) {
-    console.warn("写入凭据同步失败:", e.message);
+    console.warn("⚠️ 写入凭据同步失败（普通用户将无法写入评论）:", e.message);
+    // 尝试用fetch写入（如果桶允许）
+    try {
+      const url = `https://${COS_CONFIG.Bucket}.cos.${COS_CONFIG.Region}.myqcloud.com/config/write-creds.json`;
+      const res = await fetch(url, {
+        method: "PUT",
+        body: JSON.stringify({ SecretId: config.SecretId, SecretKey: config.SecretKey }),
+        headers: { "Content-Type": "application/json" },
+      });
+      if (res.ok) console.log("✅ 写入凭据已通过fetch上传");
+      else console.warn("fetch上传也失败: HTTP", res.status);
+    } catch (e2) {
+      console.warn("fetch上传也失败:", e2.message);
+    }
   }
   return cosInstance;
 }
@@ -114,7 +140,18 @@ export async function getCOSData(key) {
 export function putCOSData(key, data) {
   return new Promise((resolve, reject) => {
     const writer = getWriter();
-    if (!writer) { reject(new Error("暂无写入权限")); return; }
+    if (!writer) {
+      // 无SDK写入能力时用fetch尝试（桶需开启公有写权限）
+      const url = `https://${COS_CONFIG.Bucket}.cos.${COS_CONFIG.Region}.myqcloud.com/${key}`;
+      fetch(url, {
+        method: "PUT",
+        body: JSON.stringify(data),
+        headers: { "Content-Type": "application/json" },
+      })
+        .then(r => r.ok ? resolve(r) : reject(new Error("写入失败 HTTP " + r.status)))
+        .catch(e => reject(new Error("暂无写入权限（管理员请先在管理后台 > COS配置 保存密钥）")));
+      return;
+    }
     writer.putObject(
       { Bucket: COS_CONFIG.Bucket, Region: COS_CONFIG.Region,
         Key: key, Body: JSON.stringify(data), ContentType: "application/json" },
@@ -126,7 +163,7 @@ export function putCOSData(key, data) {
 export function deleteCOSData(key) {
   return new Promise((resolve, reject) => {
     const writer = getWriter();
-    if (!writer) { reject(new Error("暂无写入权限")); return; }
+    if (!writer) { reject(new Error("暂无删除权限")); return; }
     writer.deleteObject(
       { Bucket: COS_CONFIG.Bucket, Region: COS_CONFIG.Region, Key: key },
       (err, d) => { if (err) reject(err); else resolve(d); }
