@@ -20,6 +20,7 @@
           <p>👌 中等: <strong>{{ appStore.jobs.medium.length }}</strong> 条</p>
           <p>⚠️ 避雷: <strong>{{ appStore.jobs.bad.length }}</strong> 条</p>
           <p>💬 评论: <strong>{{ appStore.comments.length }}</strong> 条</p>
+          <p>🏢 已收录公司: <strong>{{ appStore.companies.length }}</strong> 个</p>
           <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">
             <button class="btn btn-primary" @click="syncAll" :disabled="syncing || !cosConnected">
               {{ syncing ? '⏳ 同步中...' : '🔄 强制同步所有数据到COS' }}
@@ -46,17 +47,51 @@
           </div>
         </div>
 
+        <!-- 公司管理 -->
+        <div v-if="currentTab === 'companies'">
+          <h3>🏢 公司管理</h3>
+          <p style="font-size:13px;color:var(--text-secondary);margin-bottom:16px">
+            只有收录在名单中的公司才能被发布。已发布工作中的公司会自动加入。
+          </p>
+
+          <!-- 批量添加 -->
+          <div style="background:#f9fafb;border-radius:8px;padding:16px;margin-bottom:16px">
+            <label class="form-label">批量添加公司（每行一个，或用逗号分隔）</label>
+            <textarea v-model="bulkText" class="form-textarea" placeholder="腾讯科技&#10;阿里巴巴&#10;字节跳动, 美团, 京东" style="min-height:80px;margin-bottom:8px"></textarea>
+            <button class="btn btn-primary btn-sm" @click="addBulk" :disabled="!bulkText.trim()">批量添加</button>
+            <span v-if="bulkStatus" style="margin-left:8px;font-size:13px">{{ bulkStatus }}</span>
+          </div>
+
+          <!-- 单个添加 -->
+          <div style="display:flex;gap:8px;margin-bottom:16px">
+            <input v-model="newCompany" class="form-input" placeholder="输入公司名称" @keyup.enter="addSingle" />
+            <button class="btn btn-success btn-sm" @click="addSingle" :disabled="!newCompany.trim()">添加</button>
+          </div>
+          <div v-if="companyError" style="color:var(--danger);font-size:13px;margin-bottom:8px">{{ companyError }}</div>
+
+          <!-- 公司列表 -->
+          <div v-if="appStore.companies.length === 0" style="text-align:center;padding:30px;color:var(--text-secondary)">
+            还没有收录任何公司
+          </div>
+          <div v-else style="max-height:400px;overflow-y:auto">
+            <div v-for="c in sortedCompanies" :key="c.name" style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-bottom:1px solid var(--border)">
+              <span>{{ c.name }}</span>
+              <button class="btn btn-danger btn-sm" @click="removeCompany(c.name)">删除</button>
+            </div>
+          </div>
+        </div>
+
         <!-- COS配置 -->
         <div v-if="currentTab === 'cos'">
           <h3>☁ COS配置</h3>
           <div :style="{padding:'12px',borderRadius:'8px',marginBottom:'16px',fontSize:'13px',background:cosConnected?'#ecfdf5':'#fefce8',border:'1px solid '+(cosConnected?'#6ee7b7':'#fde68a'),color:cosConnected?'#065f46':'#92400e'}">
-            {{ cosConnected ? '✅ COS已连接，数据可正常读写' : '请先在腾讯云获取 SecretId 和 SecretKey 并填入下方表单' }}
+            {{ cosConnected ? '✅ COS已连接' : '请先在腾讯云获取 SecretId 和 SecretKey' }}
             <br><small v-if="cosConnected">Bucket: {{ bucketName }} | Region: {{ bucketRegion }}</small>
           </div>
           <form @submit.prevent="saveCOSConfig">
             <div class="form-group"><label class="form-label">SecretId</label><input v-model="cosConfig.SecretId" class="form-input" /></div>
             <div class="form-group"><label class="form-label">SecretKey</label><input v-model="cosConfig.SecretKey" class="form-input" type="password" /></div>
-            <div class="form-group"><label class="form-label">Bucket</label><input v-model="cosConfig.Bucket" class="form-input" placeholder="your-bucket-1250000000" /></div>
+            <div class="form-group"><label class="form-label">Bucket</label><input v-model="cosConfig.Bucket" class="form-input" /></div>
             <div class="form-group"><label class="form-label">Region</label><select v-model="cosConfig.Region" class="form-select">
               <option value="ap-guangzhou">广州</option><option value="ap-shanghai">上海</option><option value="ap-beijing">北京</option>
             </select></div>
@@ -99,9 +134,19 @@ const syncing = ref(false)
 const syncResult = ref("")
 const syncError = ref("")
 
+// 公司管理
+const newCompany = ref("")
+const bulkText = ref("")
+const companyError = ref("")
+const bulkStatus = ref("")
+
 const cosConnected = computed(() => isCOSReady())
 const bucketName = computed(() => getCOSConfig().Bucket)
 const bucketRegion = computed(() => getCOSConfig().Region)
+
+const sortedCompanies = computed(() => {
+  return [...appStore.companies].sort((a, b) => a.name.localeCompare(b.name, "zh"))
+})
 
 const saved = loadSavedConfig()
 const cosConfig = ref({
@@ -114,11 +159,10 @@ const cosConfig = ref({
 const menuItems = [
   {key:"overview", icon:"📊", label:"概览"},
   {key:"content", icon:"📋", label:"内容管理"},
+  {key:"companies", icon:"🏢", label:"公司管理"},
   {key:"cos", icon:"☁", label:"COS配置"},
   {key:"settings", icon:"🎨", label:"站点设置"}
 ]
-
-const typeLabels = { good:"推荐", medium:"一般", bad:"避雷" }
 
 const filteredContent = computed(() => {
   const items = []
@@ -131,56 +175,70 @@ const filteredContent = computed(() => {
 
 async function deleteContent(item) {
   if (confirm("确定删除「" + item.title + "」？")) {
-    try {
-      await appStore.deleteJob(item.type, item.id)
-    } catch (e) {
-      alert("删除失败: " + e.message)
-    }
+    try { await appStore.deleteJob(item.type, item.id) }
+    catch (e) { alert("删除失败: " + e.message) }
+  }
+}
+
+async function addSingle() {
+  companyError.value = ""
+  try {
+    await appStore.addCompany(newCompany.value)
+    newCompany.value = ""
+  } catch (e) { companyError.value = e.message }
+}
+
+async function addBulk() {
+  bulkStatus.value = ""
+  try {
+    const count = await appStore.addCompaniesBulk(bulkText.value)
+    bulkStatus.value = `✅ 成功添加 ${count} 个公司`
+    bulkText.value = ""
+  } catch (e) { bulkStatus.value = "❌ " + e.message }
+}
+
+async function removeCompany(name) {
+  if (confirm("确定从收录名单中删除「" + name + "」？已有工作不受影响。")) {
+    await appStore.removeCompany(name)
   }
 }
 
 async function saveCOSConfig() {
-  cosStatus.value = ""
-  cosError.value = ""
-  cosSaving.value = true
+  cosStatus.value = ""; cosError.value = ""; cosSaving.value = true
   try {
-    await initCOS(cosConfig.value)
+    const config = cosConfig.value
+    // 同时保存公共配置
+    localStorage.setItem("cos_public_config", JSON.stringify({
+      Bucket: config.Bucket,
+      Region: config.Region
+    }))
+    await initCOS(config)
     cosStatus.value = "✅ COS配置保存成功！"
-    // 配置成功后，同步所有现有数据到COS
     try {
       await appStore.syncAllToCOS()
       cosStatus.value = "✅ COS配置保存成功，数据已同步！"
     } catch (e) {
-      cosStatus.value = "✅ COS配置成功，但数据同步失败: " + e.message
+      cosStatus.value = "✅ COS配置成功，但同步失败: " + e.message
     }
-  } catch (e) {
-    cosError.value = "保存失败: " + e.message
-  }
+  } catch (e) { cosError.value = "保存失败: " + e.message }
   cosSaving.value = false
 }
 
 async function syncAll() {
-  syncResult.value = ""
-  syncError.value = ""
-  syncing.value = true
+  syncResult.value = ""; syncError.value = ""; syncing.value = true
   try {
     const result = await appStore.syncAllToCOS()
     syncResult.value = "✅ 同步成功：" + result
-  } catch (e) {
-    syncError.value = "❌ 同步失败: " + e.message
-  }
+  } catch (e) { syncError.value = "❌ 同步失败: " + e.message }
   syncing.value = false
 }
 
 async function saveSettings() {
-  settingsStatus.value = ""
-  settingsError.value = ""
+  settingsStatus.value = ""; settingsError.value = ""
   try {
     await appStore.saveSiteConfig()
     settingsStatus.value = "✅ 设置已保存！"
-  } catch (e) {
-    settingsError.value = "保存失败: " + e.message
-  }
+  } catch (e) { settingsError.value = "保存失败: " + e.message }
 }
 
 function formatTime(t) { if (!t) return ""; return new Date(t).toLocaleString("zh-CN") }
