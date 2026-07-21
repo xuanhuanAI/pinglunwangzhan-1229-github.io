@@ -7,7 +7,12 @@
       </button>
     </div>
 
-    <div v-if="appStore.jobs.good.length === 0" class="empty-state">
+    <div v-if="appStore.loading && appStore.jobs.good.length === 0" class="loading">
+      <div class="spinner"></div>
+      <p>加载中...</p>
+    </div>
+
+    <div v-else-if="appStore.jobs.good.length === 0" class="empty-state">
       <div class="empty-state-icon">🎉</div>
       <div class="empty-state-text">还没有人分享好工作，来做第一个推荐人吧！</div>
       <button v-if="appStore.isLoggedIn" class="btn btn-success" style="margin-top: 12px;" @click="showForm = true">
@@ -57,13 +62,17 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useAppStore } from '@/stores/app';
 import JobCard from '@/components/JobCard.vue';
 
 const appStore = useAppStore();
 const showForm = ref(false);
 const form = ref({ title: '', company: '', description: '', salary: '' });
+
+onMounted(() => {
+  appStore.ensureDataLoaded();
+});
 
 async function submitJob() {
   await appStore.addJob('good', {

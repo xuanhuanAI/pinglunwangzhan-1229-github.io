@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div>
     <div class="hero-section">
       <h1 class="hero-title">职评网</h1>
@@ -44,7 +44,7 @@
   </div>
 </template>
 <script setup>
-import { computed, onMounted } from "vue";
+import { computed } from "vue";
 import { useAppStore } from "@/stores/app";
 import JobCard from "@/components/JobCard.vue";
 const appStore = useAppStore();
@@ -56,8 +56,5 @@ const recentJobs = computed(() => {
     }
   }
   return all.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 6);
-});
-onMounted(() => {
-  if (appStore.jobs.good.length === 0) appStore.initApp();
 });
 </script>
