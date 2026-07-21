@@ -122,7 +122,7 @@ const currentTab = ref("overview")
 const contentFilter = ref("all")
 const cosSaving = ref(false)
 const cosStatus = ref("")
-const cosError = ref(""
+const cosError = ref("")
 const cosConnected = computed(() => isCOSReady())
 const bucketName = computed(() => getCOSConfig().Bucket)
 const bucketRegion = computed(() => getCOSConfig().Region)
@@ -132,7 +132,7 @@ const cosConfig = ref({
   SecretKey: saved?.SecretKey || "",
   Bucket: saved?.Bucket || getCOSConfig().Bucket,
   Region: saved?.Region || getCOSConfig().Region
-}))
+})
 const settingsStatus = ref("")
 const settingsError = ref("")
 const syncing = ref(false)
@@ -178,9 +178,6 @@ const aiSaving = ref(false)
 const aiStatus = ref("")
 const aiError = ref("")
 
-const cosConnected = computed(() => isCOSReady())
-const bucketName = computed(() => getCOSConfig().Bucket)
-const bucketRegion = computed(() => getCOSConfig().Region)
 const AI_PROVIDERS = {
   deepseek: { baseUrl: "https://api.deepseek.com/v1", model: "deepseek-chat" },
   openai: { baseUrl: "https://api.openai.com/v1", model: "gpt-4o-mini" },
@@ -264,6 +261,8 @@ async function saveSettings() {
 
 function formatTime(t) { if (!t) return ""; return new Date(t).toLocaleString("zh-CN") }
 </script>
+
+
 
 
 
