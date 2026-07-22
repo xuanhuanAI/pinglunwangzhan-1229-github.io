@@ -39,25 +39,42 @@ export const AI_PROVIDERS = [
   { name: "OpenAI", baseUrl: "https://api.openai.com/v1", models: ["gpt-4o-mini", "gpt-4o", "gpt-3.5-turbo"] },
 ];
 
+/** 带超时的 fetch 封装 */
+async function fetchWithTimeout(url, options, timeoutMs = 8000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, { ...options, signal: controller.signal });
+    return res;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function callAI(prompt) {
   if (!aiConfig) { const ok = await loadAIConfig(); if (!ok) return null; }
-  const response = await fetch(aiConfig.baseUrl + "/chat/completions", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "Authorization": "Bearer " + aiConfig.apiKey },
-    body: JSON.stringify({
-      model: aiConfig.model, temperature: 0.1,
-      messages: [
-        { role: "system", content: "你是一个校验专家。只输出 JSON，不要附加其他内容。" },
-        { role: "user", content: prompt },
-      ],
-    }),
-  });
-  if (!response.ok) return null;
-  const result = await response.json();
-  const text = result.choices[0].message.content;
-  const match = text.match(/\{[\s\S]*\}/);
-  if (!match) return null;
-  return JSON.parse(match[0]);
+  try {
+    const response = await fetchWithTimeout(aiConfig.baseUrl + "/chat/completions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + aiConfig.apiKey },
+      body: JSON.stringify({
+        model: aiConfig.model, temperature: 0.1,
+        messages: [
+          { role: "system", content: "你是一个校验专家。只输出 JSON，不要附加其他内容。" },
+          { role: "user", content: prompt },
+        ],
+      }),
+    }, 8000);
+    if (!response.ok) return null;
+    const result = await response.json();
+    const text = result.choices[0].message.content;
+    const match = text.match(/\{[\s\S]*\}/);
+    if (!match) return null;
+    return JSON.parse(match[0]);
+  } catch (e) {
+    if (e.name === "AbortError") console.warn("AI请求超时");
+    return null;
+  }
 }
 
 /** 校验真实姓名是否合法 */
@@ -88,7 +105,7 @@ export function validatePhone(phone) {
 export async function generateSMSCode(phone) {
   const code = Math.floor(100000 + Math.random() * 900000).toString();
   const expiresAt = Date.now() + 5 * 60 * 1000;
-  console.log(`[模拟短信] 已向 ${phone} 发送验证码: ${code}（有效期5分钟）`);
+  console.log("[模拟短信] 已向 " + phone + " 发送验证码: " + code + "（有效期5分钟）");
   return { code, expiresAt, phone };
 }
 
@@ -103,7 +120,7 @@ export function validatePasswordStrength(pwd) {
   const score = (pwd.length >= 8 ? 1 : 0) + (/[A-Z]/.test(pwd) ? 1 : 0) + (/[a-z]/.test(pwd) ? 1 : 0) + (/[0-9]/.test(pwd) ? 1 : 0) + (/[!@#$%^&*(),.?":{}|<>_]/.test(pwd) ? 1 : 0);
   return {
     valid: errors.length === 0,
-    score, // 0-5
+    score,
     level: score <= 1 ? "弱" : score <= 3 ? "中" : "强",
     errors,
   };
@@ -111,9 +128,7 @@ export function validatePasswordStrength(pwd) {
 
 /** 校验公司名和职位 */
 export async function validateWithAI(company, title) {
-  const prompt = `请判断以下公司名和岗位是否真实存在：
-公司: ${company}  岗位: ${title}
-返回JSON: { valid: true/false, companyValid: true/false, titleValid: true/false, similarCompany: "", similarTitle: "", reason: "" }`;
+  const prompt = '请判断以下公司名和岗位是否真实存在：\n公司: ' + company + '  岗位: ' + title + '\n返回JSON: { valid: true/false, companyValid: true/false, titleValid: true/false, similarCompany: "", similarTitle: "", reason: "" }';
   try {
     const result = await callAI(prompt);
     if (result && !result.valid) {
@@ -125,7 +140,3 @@ export async function validateWithAI(company, title) {
   } catch (e) {}
   return { valid: true, message: "" };
 }
-
-
-
-
