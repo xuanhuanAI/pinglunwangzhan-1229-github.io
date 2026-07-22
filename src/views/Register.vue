@@ -20,7 +20,7 @@
             <label class="form-label">短信验证码 *</label>
             <input v-model="smsCode" class="form-input" placeholder="输入6位验证码" maxlength="6" required />
           </div>
-          <button type="button" class="btn btn-sm" :class="smsSent?'btn-outline':'btn-primary'" @click="sendSMSCode" :disabled="smsSending||countdown>0" style="white-space:nowrap;height:40px">
+          <button type="button" class="btn btn-sm" :class="smsSent?&apos;btn-outline&apos;:&apos;btn-primary&apos;" @click="sendSMSCode" :disabled="smsSending||countdown>0" style="white-space:nowrap;height:40px">
             {{ smsSending ? "发送中..." : countdown > 0 ? countdown+"s" : smsSent ? "重新获取" : "获取验证码" }}
           </button>
         </div>
@@ -39,7 +39,7 @@
           <input v-model="password" class="form-input" type="password" placeholder="至少8位，含大小写+数字+特殊字符" required @input="checkPwd" />
           <div v-if="pwdLevel" style="margin-top:4px">
             <div style="display:flex;gap:4px;align-items:center">
-              <div v-for="i in 5" :key="i" style="width:18%;height:4px;border-radius:2px;background:i<=(pwdScore||0)?(pwdScore<=2?"var(--danger)":pwdScore<=3?"var(--warning)":"var(--success)"):"#e5e7eb""></div>
+              <div v-for="i in 5" :key="i" :style="barStyle(i)" style="width:18%;height:4px;border-radius:2px"></div>
               <span style="font-size:11px;margin-left:4px;color:var(--text-secondary)">{{ pwdLevel }} ({{ pwdScore }}/5)</span>
             </div>
             <div v-if="pwdErrors.length" style="font-size:11px;color:var(--danger);margin-top:2px">{{ pwdErrors.join("、") }}</div>
@@ -107,6 +107,17 @@ function checkPwd() {
   pwdScore.value = r.score;
   pwdLevel.value = r.level;
   pwdErrors.value = r.errors;
+}
+
+/** 密码强度条的背景色 */
+function barColor(index) {
+  if (index > pwdScore.value) return "#e5e7eb";
+  if (pwdScore.value <= 2) return "var(--danger)";
+  if (pwdScore.value <= 3) return "var(--warning)";
+  return "var(--success)";
+}
+function barStyle(index) {
+  return { background: barColor(index) };
 }
 
 async function sendSMSCode() {
