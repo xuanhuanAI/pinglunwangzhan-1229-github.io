@@ -74,15 +74,8 @@ export async function validateRealName(name, idNumber) {
 注意：如果姓名和身份证号格式都正确，且无明显矛盾（如生日与年龄相符），判定为有效。
 返回JSON: { valid: true/false, reason: "理由" }`);
     if (aiResult) return aiResult;
-  } catch {}
+  } catch (e) {}
   return { valid: true, reason: "" };
-}
-  try {
-    const result = await callAI(`判断以下姓名是否为真实合理的中文姓名（不接受英文、数字、特殊字符）："${name}"
-返回JSON: { valid: true/false, reason: "理由" }`);
-    if (result) return result;
-  } catch {}
-  return { valid: name && /^[\u4e00-\u9fa5]{2,4}$/.test(name), reason: "" };
 }
 
 /** 校验手机号格式 */
@@ -129,9 +122,10 @@ export async function validateWithAI(company, title) {
       if (result.similarTitle) msg += " / 职位: " + result.similarTitle;
       return { valid: false, message: msg };
     }
-  } catch {}
+  } catch (e) {}
   return { valid: true, message: "" };
 }
+
 
 
 
