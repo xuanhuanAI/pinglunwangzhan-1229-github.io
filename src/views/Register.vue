@@ -9,6 +9,11 @@
           <input v-model="realName" class="form-input" placeholder="输入真实姓名（用于实名认证）" required @input="nameChecked=false" />
           <div v-if="nameCheckMsg" style="margin-top:4px;font-size:12px;color:var(--danger)">{{ nameCheckMsg }}</div>
         </div>
+        <div class="form-group">
+          <label class="form-label">身份证号 *</label>
+          <input v-model="idNumber" class="form-input" placeholder="输入18位身份证号（用于实名认证）" required maxlength="18" />
+          <div v-if="idError" style="margin-top:4px;font-size:12px;color:var(--danger)">{{ idError }}</div>
+        </div>
         <!-- 手机号 -->
         <div class="form-group">
           <label class="form-label">手机号 *</label>
@@ -57,76 +62,8 @@
           {{ loading ? "注册中..." : "实名注册" }}
         </button>
       </form>
-      <div v-if="aiChecking" style="text-align:center;margin-top:12px;font-size:13px;color:var(--primary)">🤖 AI实名校验中...</div>
-      <div v-if="error" style="color:var(--danger);font-size:14px;margin-top:12px;text-align:center">{{ error }}</div>
-      <div class="auth-footer">已有账号？<router-link to="/login">立即登录</router-link></div>
-    </div>
-  </div>
-</template>
-<script setup>
-import { ref } from "vue";
-import { useRouter } from "vue-router";
-import { useAppStore } from "@/stores/app";
-import { register } from "@/utils/auth";
-import { validateRealName, validatePhone, generateSMSCode, validatePasswordStrength } from "@/utils/ai";
-const router = useRouter();
-const appStore = useAppStore();
-const username = ref(""); const nickname = ref(""); const password = ref(""); const confirmPassword = ref("");
-const realName = ref(""); const phone = ref(""); const smsCode = ref("");
-const error = ref(""); const loading = ref(false); const aiChecking = ref(false);
-const nameChecked = ref(false); const nameCheckMsg = ref("");
-const phoneError = ref(""); const phoneChecked = ref(false);
-const smsSending = ref(false); const smsSent = ref(false); const smsError = ref("");
-const realCode = ref(""); const codeExpiresAt = ref(0);
-const countdown = ref(0); let countdownTimer = null;
-function startCountdown() { countdown.value = 60; if (countdownTimer) clearInterval(countdownTimer); countdownTimer = setInterval(() => { countdown.value--; if (countdown.value <= 0) { clearInterval(countdownTimer); countdownTimer = null; } }, 1000); }
-
-const pwdLevel = ref(""); const pwdScore = ref(0); const pwdErrors = ref([]);
-
-function checkPwd() {
-  const r = validatePasswordStrength(password.value);
-  pwdScore.value = r.score; pwdLevel.value = r.level; pwdErrors.value = r.errors;
-}
-
-async function sendSMSCode() {
-    const p = validatePhone(phone.value);
-    if (!p.valid) { phoneError.value = "请输入正确的11位手机号"; return; }
-    phoneError.value = ""; smsError.value = ""; smsSending.value = true;
-    try {
-      const result = await generateSMSCode(p.phone);
-      realCode.value = result.code;
-      codeExpiresAt.value = result.expiresAt;
-      smsSent.value = true;
-      startCountdown();
-    } catch (e) { smsError.value = "发送失败: " + e.message; }
-    smsSending.value = false;
-  }
-
-async function handleRegister() {
-  error.value = "";
-  // 验证姓名
-  if (!nameChecked.value) {
-    const nameResult = await validateRealName(realName.value);
-    if (!nameResult.valid) { error.value = "实名认证未通过: " + (nameResult.reason || "姓名不合法"); return; }
-    nameChecked.value = true;
-  }
-  // 验证手机
-  const p = validatePhone(phone.value);
-  if (!p.valid) { error.value = "手机号格式不正确"; return; }
-  phoneChecked.value = true;
-  // 验证短信验证码
-  if (!smsSent.value || !smsCode.value) { error.value = "请先获取短信验证码"; return; }
-  if (Date.now() > codeExpiresAt.value) { error.value = "验证码已过期，请重新获取"; return; }
-  if (smsCode.value !== realCode.value) { error.value = "验证码错误"; return; }
-  // 验证密码一致性
-  if (password.value !== confirmPassword.value) { error.value = "两次密码不一致"; return; }
-  // 验证密码强度
-  const pwdR = validatePasswordStrength(password.value);
-  if (!pwdR.valid) { error.value = "密码强度不足: " + pwdR.errors.join("、"); return; }
-  // AI实名校验
-  aiChecking.value = true;
-  try {
-    const nr = await validateRealName(realName.value);
+      <div v-if="aiChecking" style="text-align:center;margin-top:12px;font-size:13px;color:var(--primary)">🤖 AI实名校验
+    const nr = await validateRealName(realName.value, idNumber.value);
     if (!nr.valid) { error.value = "AI实名认证未通过: " + (nr.reason || "姓名不合法"); aiChecking.value = false; return; }
   } catch (e) { console.warn("AI校验失败:", e.message); }
   aiChecking.value = false;
@@ -140,6 +77,7 @@ async function handleRegister() {
   loading.value = false;
 }
 </script>
+
 
 
 

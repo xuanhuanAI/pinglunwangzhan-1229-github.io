@@ -61,7 +61,22 @@ async function callAI(prompt) {
 }
 
 /** 校验真实姓名是否合法 */
-export async function validateRealName(name) {
+export async function validateRealName(name, idNumber) {
+  const nameValid = name && /^[\u4e00-\u9fa5]{2,4}$/.test(name);
+  if (!nameValid) return { valid: false, reason: "姓名必须为2-4个中文汉字" };
+  const idValid = /^[1-9]\d{5}(19|20)\d{2}(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])\d{3}[\dXx]$/.test(idNumber);
+  if (!idValid) return { valid: false, reason: "身份证号格式不正确（18位）" };
+  try {
+    const aiResult = await callAI(`你是一个实名认证专家。请判断以下姓名和身份证号是否匹配。
+姓名: "${name}"
+身份证号: "${idNumber}"
+身份证号中出生日期: ${idNumber.substring(6,14)}
+注意：如果姓名和身份证号格式都正确，且无明显矛盾（如生日与年龄相符），判定为有效。
+返回JSON: { valid: true/false, reason: "理由" }`);
+    if (aiResult) return aiResult;
+  } catch {}
+  return { valid: true, reason: "" };
+}
   try {
     const result = await callAI(`判断以下姓名是否为真实合理的中文姓名（不接受英文、数字、特殊字符）："${name}"
 返回JSON: { valid: true/false, reason: "理由" }`);
@@ -117,5 +132,6 @@ export async function validateWithAI(company, title) {
   } catch {}
   return { valid: true, message: "" };
 }
+
 
 
