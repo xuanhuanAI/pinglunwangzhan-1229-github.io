@@ -22,7 +22,11 @@ export async function getUsers() {
   let cosUsers = [];
   try { const d = await getCOSData("data/users.json"); cosUsers = d || []; } catch {}
   const pending = getPendingUsers();
-  const all = [...cosUsers, ...pending];
+  // 合并时去重（以 username 为准）
+  const all = [...cosUsers];
+  for (const pu of pending) {
+    if (!all.find(u => u.username === pu.username)) all.push(pu);
+  }
   if (!all.find(u => u.username === DEFAULT_ADMIN.username)) all.push(DEFAULT_ADMIN);
   return all;
 }
@@ -38,10 +42,16 @@ export async function login(username, password) {
   return null;
 }
 
-/** 手机号 + 验证码登录/找回密码 */
+/** 手机号 + 验证码登录 */
 export async function loginByPhone(phone) {
   const users = await getUsers();
-  const user = users.find(u => u.phone === phone);
+  // 先尝试精确匹配
+  let user = users.find(u => u.phone === phone);
+  // 再尝试去除空格后匹配
+  if (!user) {
+    const cleaned = phone.replace(/\s+/g, "");
+    user = users.find(u => u.phone === cleaned);
+  }
   if (!user) throw new Error("该手机号未注册");
   const { password: _, ...safe } = user;
   return safe;
@@ -51,9 +61,28 @@ export async function register(username, password, nickname, realName, phone) {
   const users = await getUsers();
   if (users.find(u => u.username === username)) throw new Error("用户名已存在");
   if (phone && users.find(u => u.phone === phone)) throw new Error("该手机号已注册");
-  const newUser = { username, password, nickname: nickname || username, realName: realName || "", phone: phone || "", role: "user", createdAt: new Date().toISOString() };
-  if (isCOSReady()) { users.push(newUser); await putCOSData("data/users.json", users); }
-  else { const p = getPendingUsers(); if (p.find(u => u.username === username)) throw new Error("用户名已存在"); p.push(newUser); savePendingUsers(p); }
+  const newUser = {
+    username, password,
+    nickname: nickname || username,
+    realName: realName || "",
+    phone: phone || "",
+    role: "user",
+    createdAt: new Date().toISOString(),
+  };
+
+  // 1. 尝试写入 COS（如果有权限）
+  if (isCOSReady()) {
+    users.push(newUser);
+    await putCOSData("data/users.json", users);
+  }
+
+  // 2. 无论如何也保存到本地 pending，确保登录时能读到
+  const pending = getPendingUsers();
+  if (!pending.find(u => u.username === newUser.username)) {
+    pending.push(newUser);
+    savePendingUsers(pending);
+  }
+
   const { password: _, ...safe } = newUser;
   return safe;
 }
@@ -75,7 +104,12 @@ export async function syncPendingUsers() {
   let cosUsers = [];
   try { const d = await getCOSData("data/users.json"); cosUsers = d || []; } catch {}
   let added = 0;
-  for (const pu of pending) { if (!cosUsers.find(u => u.username === pu.username)) { cosUsers.push(pu); added++; } }
+  for (const pu of pending) {
+    if (!cosUsers.find(u => u.username === pu.username)) {
+      cosUsers.push(pu);
+      added++;
+    }
+  }
   if (added > 0) await putCOSData("data/users.json", cosUsers);
   savePendingUsers([]);
   return added;
