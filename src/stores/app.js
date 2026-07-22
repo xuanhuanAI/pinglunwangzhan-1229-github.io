@@ -42,7 +42,7 @@ export const useAppStore = defineStore("app", {
     comments: [],
     companies: [],
     jobTitles: [],
-    dataLoaded: false,
+    dataLoaded: false,_loadingPromise: null,
     loading: false,
   }),
   getters: {
@@ -327,29 +327,38 @@ export const useAppStore = defineStore("app", {
       return results.join(" | ");
     },
 
+        // 加载Promise，供其他组件等待
+
     async initApp() {
-      if (this.loading) return;
+      if (this.dataLoaded) return;
+      if (this._loadingPromise) return this._loadingPromise;
       this.loading = true;
-      try {
-        await initCOSSaved();
-        await this.fetchSiteConfig();
-        await Promise.all([
-          this.fetchJobs("good"), this.fetchJobs("medium"), this.fetchJobs("bad"),
-          this.fetchComments(), this.fetchCompanies(), this.fetchJobTitles(),
-        ]);
-        if (isCOSReady()) {
-          await this.extractCompaniesFromJobs();
-          await this.extractJobTitlesFromJobs();
-        }
-        this.dataLoaded = true;
-      } catch (e) { console.error("数据加载失败:", e); }
-      finally { this.loading = false; }
+      this._loadingPromise = (async () => {
+        try {
+          await initCOSSaved();
+          await this.fetchSiteConfig();
+          await Promise.all([
+            this.fetchJobs("good"), this.fetchJobs("medium"), this.fetchJobs("bad"),
+            this.fetchComments(), this.fetchCompanies(), this.fetchJobTitles(),
+          ]);
+          if (isCOSReady()) {
+            await this.extractCompaniesFromJobs();
+            await this.extractJobTitlesFromJobs();
+          }
+          this.dataLoaded = true;
+        } catch (e) { console.error("数据加载失败:", e); }
+        finally { this.loading = false; this._loadingPromise = null; }
+      })();
+      return this._loadingPromise;
     },
 
     async ensureDataLoaded() {
-      if (!this.dataLoaded && !this.loading) await this.initApp();
+      if (this.dataLoaded) return;
+      if (this._loadingPromise) await this._loadingPromise;
+      else await this.initApp();
     },
   },
 });
+
 
 
