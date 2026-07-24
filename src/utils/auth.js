@@ -20,7 +20,8 @@ function savePendingUsers(u) { localStorage.setItem(PENDING_USERS_KEY, JSON.stri
 
 export async function getUsers() {
   let cosUsers = [];
-  try { const d = await getCOSData("data/users.json"); cosUsers = d || []; } catch {}
+  try { const d = await getCOSData("data/users.json"); cosUsers = d || []; }
+  catch (e) { console.warn("COS读用户失败:", e.message); }
   const pending = getPendingUsers();
   // 合并时去重（以 username 为准）
   const all = [...cosUsers];
@@ -82,6 +83,11 @@ export async function register(username, password, nickname, realName, phone) {
     pending.push(newUser);
     savePendingUsers(pending);
   }
+
+  // 3. 额外保存手机号->用户映射到 localStorage（供登录兜底）
+  try {
+    localStorage.setItem("phone_user_" + newUser.phone.replace(/\s+/g, ""), JSON.stringify(newUser));
+  } catch(e) {}
 
   const { password: _, ...safe } = newUser;
   return safe;
